@@ -46,5 +46,34 @@ class OverlayLabelNode:
         print("label_image shape:", label_image.shape)
         print("label_mask shape:", label_mask.shape)
 
-        # Just pass through for now to test connections
-        return (generated_image,)
+        # Convert tensors to PIL images
+        gen_img = self.tensor_to_pil(generated_image)
+        label_img = self.tensor_to_pil(label_image)
+
+        # Convert label mask to 2D NumPy array
+        mask_np = label_mask.squeeze(0).cpu().numpy()  # [H, W]
+        mask_img = Image.fromarray((mask_np * 255).astype(np.uint8), mode="L")
+
+        # Get bounding box of the non-zero mask area
+        bbox = mask_img.getbbox()
+        if bbox is None:
+            print("No non-zero area in mask.")
+            return (generated_image,)  # just return original if mask is empty
+
+        # Resize label image to match mask bounding box
+        label_resized = label_img.resize((bbox[2] - bbox[0], bbox[3] - bbox[1]))
+
+        # Prepare overlay canvas
+        gen_rgba = gen_img.convert("RGBA")
+        overlay = Image.new("RGBA", gen_rgba.size)
+
+        # Paste resized label into the masked region
+        overlay.paste(label_resized, (bbox[0], bbox[1]), mask=label_resized.split()[-1])  # use alpha as mask
+
+        # Blend the overlay onto the generated image
+        result = Image.alpha_composite(gen_rgba, overlay)
+
+        # Convert back to tensor
+        result_tensor = self.pil_to_tensor(result)
+
+        return (result_tensor,)
