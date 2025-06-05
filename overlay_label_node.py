@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
+
 
 class OverlayLabelNode:
     @classmethod
@@ -53,7 +54,8 @@ class OverlayLabelNode:
         # Convert label mask to 2D NumPy array
         mask_np = label_mask.squeeze(0).cpu().numpy()  # [H, W]
         mask_img = Image.fromarray((mask_np * 255).astype(np.uint8), mode="L")
-
+        print("Mask image shape:", mask_np.shape)
+        print("Mask image size:", mask_img.size)
         # Get bounding box of the non-zero mask area
         bbox = mask_img.getbbox()
         if bbox is None:
@@ -61,11 +63,14 @@ class OverlayLabelNode:
             return (generated_image,)  # just return original if mask is empty
 
         # Resize label image to match mask bounding box
-        label_resized = label_img.resize((bbox[2] - bbox[0], bbox[3] - bbox[1]))
+    
+
+        label_resized = ImageOps.fit(label_img, (bbox[2] - bbox[0], bbox[3] - bbox[1]), method=Image.LANCZOS)
+
 
         print("Bounding box:", bbox)
         print("Label resized size:", label_resized.size)
-        
+
         # Prepare overlay canvas
         gen_rgba = gen_img.convert("RGBA")
         overlay = Image.new("RGBA", gen_rgba.size)
@@ -78,5 +83,7 @@ class OverlayLabelNode:
 
         # Convert back to tensor
         result_tensor = self.pil_to_tensor(result)
+
+        result_tensor = result_tensor.permute(1, 2, 0).unsqueeze(0)  # [C,H,W] → [1,H,W,C]
 
         return (result_tensor,)
