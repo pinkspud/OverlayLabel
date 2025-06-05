@@ -9,7 +9,7 @@ class OverlayLabelNode:
             "required": {
                 "generated_image": ("IMAGE",),
                 "label_image": ("IMAGE",),
-                "label_mask": ("MASK",),  # ✅ ComfyUI mask type (1, H, W)
+                "label_mask": ("MASK",),  # ComfyUI mask type (1, H, W)
             },
         }
 
@@ -48,15 +48,15 @@ class OverlayLabelNode:
         mask_tensor = label_mask[0]  # [1, H, W] → [H, W]
         mask_np = mask_tensor.cpu().numpy()
 
-        # Resize mask to match generated image
-        mask_tensor = label_mask[0]  # shape [1, H, W]
-        mask_np = mask_tensor.cpu().numpy()
-        if mask_np.ndim == 3 and mask_np.shape[0] == 1:
-            mask_np = mask_np[0]  # Ensure shape [H, W]
+        # label_mask is a torch tensor of shape [1, H, W]
+        mask_np = label_mask.squeeze().cpu().numpy()  # shape → [H, W]
 
-        # Resize and normalize
-        mask_img_resized = Image.fromarray((mask_np * 255).astype(np.uint8)).resize(gen.size)
+        # Convert to PIL-safe grayscale image
+        mask_img_resized = Image.fromarray((mask_np * 255).astype(np.uint8), mode="L").resize(gen.size)
+
+        # Back to NumPy float32 in [0, 1]
         mask_np_resized = np.array(mask_img_resized).astype(np.float32) / 255.0
+
 
         # Find bounding box of non-zero mask
         coords = np.argwhere(mask_np_resized > 0.05)
