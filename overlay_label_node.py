@@ -3,7 +3,7 @@ from PIL import Image
 from comfy.model_base import BaseNode
 from nodes import ImageWrapper
 
-class OverlayLabelNode(BaseNode):
+class OverlayLabelNode:
     @classmethod
     def INPUT_TYPES(cls):
         return {
