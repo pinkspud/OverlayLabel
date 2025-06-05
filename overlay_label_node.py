@@ -17,7 +17,7 @@ class OverlayLabelNode(BaseNode):
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("blended_image",)
     FUNCTION = "blend_label"
-    CATEGORY = "image"
+    CATEGORY = "Custom/Image"
 
     def blend_label(self, generated_image, label_image, label_mask):
         # Convert images to RGBA numpy arrays
