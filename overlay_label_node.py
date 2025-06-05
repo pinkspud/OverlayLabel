@@ -48,7 +48,13 @@ class OverlayLabelNode:
         mask_tensor = label_mask[0]  # [1, H, W] → [H, W]
         mask_np = mask_tensor.cpu().numpy()
 
-        # Resize the mask to match the generated image (in case it's not)
+        # Resize mask to match generated image
+        mask_tensor = label_mask[0]  # shape [1, H, W]
+        mask_np = mask_tensor.cpu().numpy()
+        if mask_np.ndim == 3 and mask_np.shape[0] == 1:
+            mask_np = mask_np[0]  # Ensure shape [H, W]
+
+        # Resize and normalize
         mask_img_resized = Image.fromarray((mask_np * 255).astype(np.uint8)).resize(gen.size)
         mask_np_resized = np.array(mask_img_resized).astype(np.float32) / 255.0
 
