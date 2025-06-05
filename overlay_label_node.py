@@ -63,6 +63,9 @@ class OverlayLabelNode:
         # Resize label image to match mask bounding box
         label_resized = label_img.resize((bbox[2] - bbox[0], bbox[3] - bbox[1]))
 
+        print("Bounding box:", bbox)
+        print("Label resized size:", label_resized.size)
+        
         # Prepare overlay canvas
         gen_rgba = gen_img.convert("RGBA")
         overlay = Image.new("RGBA", gen_rgba.size)
