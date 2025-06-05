@@ -19,18 +19,18 @@ class OverlayLabelNode:
     CATEGORY = "image"
 
     def tensor_to_pil(self, tensor):
-        # Ensure input is [C, H, W] torch tensor, values in [0, 1]
-        array = tensor.cpu().numpy()
+        # tensor: [1, H, W, C] → squeeze batch → transpose channels
+        array = tensor.squeeze(0).cpu().numpy()  # [H, W, C]
         array = np.clip(array * 255.0, 0, 255).astype(np.uint8)
 
-        if array.shape[0] == 1:
-            return Image.fromarray(array[0], mode="L")  # 2D grayscale
-        elif array.shape[0] == 3:
-            return Image.fromarray(np.transpose(array, (1, 2, 0)), mode="RGB")  # 3D RGB
-        elif array.shape[0] == 4:
-            return Image.fromarray(np.transpose(array, (1, 2, 0)), mode="RGBA")  # 3D RGBA
+        if array.ndim == 2:
+            return Image.fromarray(array, mode="L")
+        elif array.shape[2] == 3:
+            return Image.fromarray(array, mode="RGB")
+        elif array.shape[2] == 4:
+            return Image.fromarray(array, mode="RGBA")
         else:
-            raise ValueError(f"Unsupported tensor shape: {array.shape}")
+            raise ValueError(f"Unsupported array shape for PIL: {array.shape}")
 
 
     def pil_to_tensor(self, image):
