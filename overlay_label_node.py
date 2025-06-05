@@ -56,34 +56,37 @@ class OverlayLabelNode:
         mask_img = Image.fromarray((mask_np * 255).astype(np.uint8), mode="L")
         print("Mask image shape:", mask_np.shape)
         print("Mask image size:", mask_img.size)
+
         # Get bounding box of the non-zero mask area
         bbox = mask_img.getbbox()
         if bbox is None:
             print("No non-zero area in mask.")
             return (generated_image,)  # just return original if mask is empty
 
-        # Resize label image to match mask bounding box
-    
+        # Calculate bounding box size
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
 
-        label_resized = ImageOps.fit(label_img, (bbox[2] - bbox[0], bbox[3] - bbox[1]), method=Image.LANCZOS)
-
-
+        # Resize label to exactly fit the bounding box (no aspect ratio preservation)
+        label_resized = label_img.resize((width, height), resample=Image.LANCZOS)
         print("Bounding box:", bbox)
         print("Label resized size:", label_resized.size)
+
+        # Crop the mask to match the bbox
+        mask_crop = mask_img.crop(bbox)
 
         # Prepare overlay canvas
         gen_rgba = gen_img.convert("RGBA")
         overlay = Image.new("RGBA", gen_rgba.size)
 
-        # Paste resized label into the masked region
-        overlay.paste(label_resized, (bbox[0], bbox[1]), mask=label_resized.split()[-1])  # use alpha as mask
+        # Paste label into the masked region using the cropped mask
+        overlay.paste(label_resized, (bbox[0], bbox[1]), mask=mask_crop)
 
-        # Blend the overlay onto the generated image
+        # Composite the overlay onto the base image
         result = Image.alpha_composite(gen_rgba, overlay)
 
         # Convert back to tensor
         result_tensor = self.pil_to_tensor(result)
-
         result_tensor = result_tensor.permute(1, 2, 0).unsqueeze(0)  # [C,H,W] → [1,H,W,C]
 
         return (result_tensor,)
